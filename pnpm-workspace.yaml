@@ -1,0 +1,11 @@
+packages:
+  - "."
+  - ".dependencies/vega"
+  - ".dependencies/vega/packages/protocol"
+  - ".dependencies/vega-plugin-richtext"
+
+linkWorkspacePackages: true
+
+allowBuilds:
+  esbuild: true
+
