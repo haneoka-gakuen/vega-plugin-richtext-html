@@ -1,9 +1,5 @@
 import createDOMPurify, { type Config } from "dompurify";
-import {
-  defineVegaPlugin,
-  type VegaPlugin,
-  type VegaPluginContext,
-} from "@haneoka/vega/plugin";
+import { defineVegaPlugin, type VegaPlugin, type VegaPluginContext } from "@haneoka/vega/plugin";
 import {
   VEGA_RICH_TEXT_SERVICE,
   type VegaRichTextHandle,
@@ -85,17 +81,12 @@ export const VEGA_HTML_ALLOWED_ATTRIBUTES = Object.freeze([
   "type",
 ] as const);
 
-const SAFE_URI =
-  /^(?:(?:https?|mailto|tel):[^\s\\]*|(?:\/(?!\/)|[?#])[^:\s\\]*|[^:/?#\s\\]+(?:[/?#][^:\s\\]*)?)$/iu;
+const SAFE_URI = /^(?:(?:https?|mailto|tel):[^\s\\]*|(?:\/(?!\/)|[?#])[^:\s\\]*|[^:/?#\s\\]+(?:[/?#][^:\s\\]*)?)$/iu;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/u;
 
 const isSafeUri = (value: string): boolean => {
   const normalized = value.trim();
-  return (
-    normalized.length > 0 &&
-    !CONTROL_CHARACTERS.test(normalized) &&
-    SAFE_URI.test(normalized)
-  );
+  return normalized.length > 0 && !CONTROL_CHARACTERS.test(normalized) && SAFE_URI.test(normalized);
 };
 
 const STRICT_HTML_CONFIG: Config & { RETURN_DOM_FRAGMENT: true } = {
@@ -105,13 +96,7 @@ const STRICT_HTML_CONFIG: Config & { RETURN_DOM_FRAGMENT: true } = {
   ALLOW_ARIA_ATTR: false,
   ALLOW_DATA_ATTR: false,
   ALLOW_UNKNOWN_PROTOCOLS: false,
-  FORBID_ATTR: [
-    "autofocus",
-    "contenteditable",
-    "nonce",
-    "srcdoc",
-    "style",
-  ],
+  FORBID_ATTR: ["autofocus", "contenteditable", "nonce", "srcdoc", "style"],
   FORBID_TAGS: [
     "audio",
     "base",
@@ -151,14 +136,10 @@ type Purifier = ReturnType<typeof createDOMPurify>;
 const purifiers = new WeakMap<object, Purifier>();
 const allowedTags = new Set<string>(VEGA_HTML_ALLOWED_TAGS);
 const allowedAttributes = new Set<string>(VEGA_HTML_ALLOWED_ATTRIBUTES);
-const contentDroppingTags = new Set<string>(
-  STRICT_HTML_CONFIG.FORBID_TAGS ?? [],
-);
+const contentDroppingTags = new Set<string>(STRICT_HTML_CONFIG.FORBID_TAGS ?? []);
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
-const removeUnsafeNodesAndAttributes = (
-  fragment: DocumentFragment,
-): DocumentFragment => {
+const removeUnsafeNodesAndAttributes = (fragment: DocumentFragment): DocumentFragment => {
   const removeNode = (node: Node): void => {
     node.parentNode?.removeChild(node);
   };
@@ -174,14 +155,8 @@ const removeUnsafeNodesAndAttributes = (
 
     const element = node as Element;
     const tag = element.localName.toLowerCase();
-    if (
-      element.namespaceURI !== HTML_NAMESPACE ||
-      !allowedTags.has(tag)
-    ) {
-      if (
-        element.namespaceURI !== HTML_NAMESPACE ||
-        contentDroppingTags.has(tag)
-      ) {
+    if (element.namespaceURI !== HTML_NAMESPACE || !allowedTags.has(tag)) {
+      if (element.namespaceURI !== HTML_NAMESPACE || contentDroppingTags.has(tag)) {
         element.remove();
         return;
       }
@@ -192,10 +167,7 @@ const removeUnsafeNodesAndAttributes = (
 
     for (const attribute of [...element.attributes]) {
       const name = attribute.name.toLowerCase();
-      if (
-        !allowedAttributes.has(name) ||
-        (name === "href" && !isSafeUri(attribute.value))
-      ) {
+      if (!allowedAttributes.has(name) || (name === "href" && !isSafeUri(attribute.value))) {
         element.removeAttribute(attribute.name);
       }
     }
@@ -209,9 +181,7 @@ const removeUnsafeNodesAndAttributes = (
 const purifierFor = (document: Document): Purifier => {
   const view = document.defaultView;
   if (!view) {
-    throw new TypeError(
-      "Vega HTML rich text requires a document attached to a Window",
-    );
+    throw new TypeError("Vega HTML rich text requires a document attached to a Window");
   }
   const key = view as unknown as object;
   const cached = purifiers.get(key);
@@ -232,9 +202,7 @@ const startsTagToken = (source: string, index: number): boolean => {
   return next === "/" && TAG_NAME_START.test(source[index + 2] ?? "");
 };
 
-const findIncompleteTagTokenStart = (
-  source: string,
-): number | undefined => {
+const findIncompleteTagTokenStart = (source: string): number | undefined => {
   let searchFrom = 0;
   while (searchFrom < source.length) {
     const start = source.indexOf("<", searchFrom);
@@ -274,20 +242,12 @@ const findIncompleteTagTokenStart = (
   return undefined;
 };
 
-const sanitizeCompleteHtml = (
-  document: Document,
-  input: string,
-): DocumentFragment => {
-  const sanitized = purifierFor(document).sanitize(
-    `<div>${input}</div>`,
-    STRICT_HTML_CONFIG,
-  );
+const sanitizeCompleteHtml = (document: Document, input: string): DocumentFragment => {
+  const sanitized = purifierFor(document).sanitize(`<div>${input}</div>`, STRICT_HTML_CONFIG);
   if (sanitized.nodeType !== 11) {
     throw new TypeError("DOMPurify did not return a DocumentFragment");
   }
-  const owned = sanitized.ownerDocument === document
-    ? sanitized
-    : document.importNode(sanitized, true);
+  const owned = sanitized.ownerDocument === document ? sanitized : document.importNode(sanitized, true);
   return removeUnsafeNodesAndAttributes(owned);
 };
 
@@ -298,22 +258,14 @@ const sanitizeCompleteHtml = (
  * SVG/MathML and styling surfaces. Consumers needing a broader policy should
  * provide another renderer rather than weakening this shared safe default.
  */
-export const sanitizeHtmlToFragment = (
-  document: Document,
-  source: string,
-): DocumentFragment => {
+export const sanitizeHtmlToFragment = (document: Document, source: string): DocumentFragment => {
   const input = String(source);
   const incompleteAt = findIncompleteTagTokenStart(input);
   if (incompleteAt === undefined) {
     return sanitizeCompleteHtml(document, input);
   }
-  const recovered = sanitizeCompleteHtml(
-    document,
-    input.slice(0, incompleteAt),
-  );
-  recovered.append(
-    document.createTextNode(input.slice(incompleteAt)),
-  );
+  const recovered = sanitizeCompleteHtml(document, input.slice(0, incompleteAt));
+  recovered.append(document.createTextNode(input.slice(incompleteAt)));
   return recovered;
 };
 
@@ -326,15 +278,10 @@ export const vegaHtmlRichTextRenderer: VegaRichTextRenderer = Object.freeze({
   },
 });
 
-const registerRenderer = (
-  context: VegaPluginContext,
-  renderer: VegaRichTextRenderer,
-): VegaRichTextHandle => {
+const registerRenderer = (context: VegaPluginContext, renderer: VegaRichTextRenderer): VegaRichTextHandle => {
   const service = context.service(VEGA_RICH_TEXT_SERVICE);
   if (!service) {
-    throw new ReferenceError(
-      "Vega HTML rich text requires haneoka.vega-richtext",
-    );
+    throw new ReferenceError("Vega HTML rich text requires haneoka.vega-richtext");
   }
   return service.register(renderer);
 };
@@ -353,10 +300,7 @@ export const createVegaHtmlRichTextPlugin = (): VegaPlugin =>
       },
     },
     setup(context) {
-      const registration = registerRenderer(
-        context,
-        vegaHtmlRichTextRenderer,
-      );
+      const registration = registerRenderer(context, vegaHtmlRichTextRenderer);
       return { dispose: () => registration.dispose() };
     },
   });
