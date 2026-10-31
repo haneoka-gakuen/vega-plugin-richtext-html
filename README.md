@@ -23,4 +23,6 @@ media, SVG/MathML, active URL protocols, arbitrary classes and IDs.
 `sanitizeHtmlToFragment(document, source)` exposes the same safe transformation
 for other renderer plugins.
 
-MPL-2.0.
+## License
+
+[MPL-2.0](LICENSE).
